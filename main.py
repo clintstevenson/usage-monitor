@@ -15,6 +15,8 @@ import json
 import io
 import csv
 import gzip
+import re
+import os
 
 def credload(dir = None):    
     if dir is None:
@@ -71,42 +73,53 @@ def s3_send(df, s3_bucket = None, s3_key = None, compresslevel = 9, credentials 
       
     return {'status': status, 'Compression': compresslevel, 'Bucket': s3_bucket, 'ObjectLocation': s3_key, 'message': msg}    
     
-cred_dir = 'SECRET_PATH\\authentication\\test_creds.yml'
-yaml_default = credload(dir = cred_dir)
-creds = {'ACCESS_KEY' : yaml_default['aws_access_key'], 'SECRET_KEY' : yaml_default['aws_secret_key'] }
-
-prev_pos = curr_pos = [0, 0]
-curr_window_title = ''
-start_time = int( time.time() )
-start_time_minute = m.floor(start_time / 60)
-
-
-while True:
-    prev_pos = win32api.GetCursorPos()
-    window_title = getForegroundWindowTitle()
-    now = int( time.time() )
-    pos_str = ','.join(str(j) for j in prev_pos)
+def track_it(cred_file = None, s3_bucket = None, heart_beat_time = 60, send_2_s3_minute_interval = 10):
     
-    if prev_pos[0] != curr_pos[0] or prev_pos[1] != curr_pos[1] or curr_window_title != window_title:        
-        out = str(pos_str) + '\t' + str(now) + '\t' + str(window_title) + '\n'
-        
-        out_filename = "POC_" + str(datetime.now().strftime("%Y%m%d-%H")) + ".txt"        
-        f = codecs.open(str(out_filename), "a", "utf-8")
-        f.write(out)
-        f.close()
-    
-    curr_time_minute = m.floor(start_time / 60)
-    
-    if curr_time_minute - start_time_minute % 10 == 0: 
-        log_files = glob.glob("POC_*.txt")
-        
+    yaml_default = credload(dir = cred_file)
+    creds = {'ACCESS_KEY' : yaml_default['aws_access_key'], 'SECRET_KEY' : yaml_default['aws_secret_key'] }
+
+    prev_pos = curr_pos = [0, 0]
+    curr_window_title = ''
+    start_time = int( time.time() )
+    start_time_minute = m.floor(start_time / 60)
+
+    while True:
+        prev_pos = win32api.GetCursorPos()
+        window_title = getForegroundWindowTitle()
+        now = int( time.time() )
+        pos_str = ','.join(str(j) for j in prev_pos)
+
+        if prev_pos[0] != curr_pos[0] or prev_pos[1] != curr_pos[1] or curr_window_title != window_title:        
+            out = str(pos_str) + '\t' + str(now) + '\t' + str(window_title) + '\n'
+
+            out_filename = "out/" + str(datetime.now().strftime("%Y%m%d")) + ".txt"        
+            f = codecs.open(str(out_filename), "a", "utf-8")
+            f.write(out)
+            f.close()
+
+        curr_time_minute = m.floor(start_time / heart_beat_time)
+
+        # if curr_time_minute - start_time_minute % send_2_s3_minute_interval == 0: 
+        log_files = glob.glob("out/[0-9]*.txt")
+
         for i in log_files:                
-            d = pd.read_csv(i, sep="\t", names=['position','timestamp', 'window_name'])
+            d = pd.read_csv(i, sep="\t", names=['position','timestamp', 'window_name'])                
             s3_filename = i + '.gz'
-            s3_complete = s3_send(df = d, s3_bucket = 'home-usage-logger', s3_key = s3_filename, compresslevel = 9, credentials = creds)                  
-        
-    curr_pos = prev_pos
-    curr_window_title = window_title
-    time.sleep(60)
-    break
+            s3_complete = s3_send(df = d, s3_bucket = s3_bucket, s3_key = s3_filename, compresslevel = 9, credentials = creds)                  
+
+            p = re.compile("[0-9]+\.txt")
+            i_filename = p.search(i).group(0)            
+            p2 = re.compile("^[0-9]+")
+            i_date = p2.search(i_filename).group(0)
+            
+            if datetime.now().strftime("%Y%m%d") != i_date:
+                os.unlink(i)            
+
+        curr_pos = prev_pos
+        curr_window_title = window_title
+        time.sleep(heart_beat_time)
     
+    
+if __name__ == '__main__':
+    track_it(cred_file = 'C:\\Users\\Clints.EMR\\Documents\\authentication\\test_creds.yml', 
+             s3_bucket = 'home-usage-logger', heart_beat_time = 2, send_2_s3_minute_interval = 1)
