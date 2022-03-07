@@ -103,15 +103,16 @@ def track_it(cred_file = None, s3_bucket = None, heart_beat_time = 60, send_2_s3
         log_files = glob.glob("out/[0-9]*.txt")
 
         for i in log_files:                
-            d = pd.read_csv(i, sep="\t", names=['position','timestamp', 'window_name'])                
-            s3_filename = i + '.gz'
-            s3_complete = s3_send(df = d, s3_bucket = s3_bucket, s3_key = s3_filename, compresslevel = 9, credentials = creds)                  
-
+            d = pd.read_csv(i, sep="\t", names=['position','timestamp', 'window_name'])   
+            
             p = re.compile("[0-9]+\.txt")
             i_filename = p.search(i).group(0)            
             p2 = re.compile("^[0-9]+")
             i_date = p2.search(i_filename).group(0)
             
+            s3_filename = i_filename + '.gz'
+            s3_complete = s3_send(df = d, s3_bucket = s3_bucket, s3_key = s3_filename, compresslevel = 9, credentials = creds)                  
+
             if datetime.now().strftime("%Y%m%d") != i_date:
                 os.unlink(i)            
 
