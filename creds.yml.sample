@@ -1,0 +1,3 @@
+default:
+  aws_access_key: "MY_ACCESS_KEY"
+  aws_secret_key: "SUPER_SECRET_ACCESS_KEY"

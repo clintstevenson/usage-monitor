@@ -18,6 +18,15 @@ import gzip
 import re
 import os
 
+###############################
+# Install beyond base Python
+#
+# python pip -m install pywin32
+# python pip -m install boto3
+# python pip -m install pandas
+# python pip -m install pyyaml
+###############################
+
 def credload(dir = None):    
     if dir is None:
         return False
@@ -91,8 +100,13 @@ def track_it(cred_file = None, s3_bucket = None, heart_beat_time = 60, send_2_s3
 
         if prev_pos[0] != curr_pos[0] or prev_pos[1] != curr_pos[1] or curr_window_title != window_title:        
             out = str(pos_str) + '\t' + str(now) + '\t' + str(window_title) + '\n'
-
-            out_filename = "out/" + str(datetime.now().strftime("%Y%m%d")) + ".txt"        
+            
+            path = "c:/temp/out/"            
+            isExist = os.path.exists(path)
+            if not isExist:
+                os.makedirs(path)
+                
+            out_filename = path + str(datetime.now().strftime("%Y%m%d")) + ".txt"        
             f = codecs.open(str(out_filename), "a", "utf-8")
             f.write(out)
             f.close()
@@ -122,5 +136,5 @@ def track_it(cred_file = None, s3_bucket = None, heart_beat_time = 60, send_2_s3
     
     
 if __name__ == '__main__':
-    track_it(cred_file = 'C:\\Users\\Clints.EMR\\Documents\\authentication\\test_creds.yml', 
+    track_it(cred_file = '\\authentication\\test_creds.yml', 
              s3_bucket = 'home-usage-logger', heart_beat_time = 2, send_2_s3_minute_interval = 1)
