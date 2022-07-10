@@ -17,9 +17,10 @@ import csv
 import gzip
 import re
 import os
+import socket
 
 USER_DIR = os.path.expanduser('~')
-
+COMPUTER_NAME = socket.gethostname()
 ###############################
 # Install beyond base Python
 #
@@ -117,7 +118,7 @@ def track_it(cred_file = None, s3_bucket = None, heart_beat_time = 60, send_2_s3
             if not isExist:
                 os.makedirs(path)
                 
-            out_filename = path + str(datetime.now().strftime("%Y%m%d")) + ".txt"        
+            out_filename = path + COMPUTER_NAME + "_" + str(datetime.now().strftime("%Y%m%d")) + ".txt"        
             f = codecs.open(str(out_filename), "a", "utf-8")
             f.write(out)
             f.close()
@@ -125,14 +126,14 @@ def track_it(cred_file = None, s3_bucket = None, heart_beat_time = 60, send_2_s3
         curr_time_minute = m.floor(start_time / heart_beat_time)
 
         # if curr_time_minute - start_time_minute % send_2_s3_minute_interval == 0: 
-        log_files = glob.glob("out/[0-9]*.txt")
+        log_files = glob.glob(path + "/[a-zA-Z0-9\-]*.txt")
 
         for i in log_files:                
             d = pd.read_csv(i, sep="\t", names=['position','timestamp', 'window_name'])   
             
-            p = re.compile("[0-9]+\.txt")
+            p = re.compile("[a-zA-Z0-9\-]+\.txt")
             i_filename = p.search(i).group(0)            
-            p2 = re.compile("^[0-9]+")
+            p2 = re.compile("^[a-zA-Z0-9\-]+")
             i_date = p2.search(i_filename).group(0)
             
             s3_filename = i_filename + '.gz'
