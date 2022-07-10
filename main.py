@@ -18,6 +18,8 @@ import gzip
 import re
 import os
 
+USER_DIR = os.path.expanduser('~')
+
 ###############################
 # Install beyond base Python
 #
@@ -39,6 +41,15 @@ def credload(dir = None):
         return str(e)
     
     return yaml_default
+
+
+def add_to_startup(file_path=""):
+    if file_path == "":
+        file_path = os.path.dirname(os.path.realpath(__file__))
+    bat_path = r'C:\Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' % USER_NAME
+    with open(bat_path + '\\' + "open.bat", "w+") as bat_file:
+        bat_file.write(r'start "" "%s"' % file_path)
+
 
 def getForegroundWindowTitle() -> Optional[str]:
     hWnd = windll.user32.GetForegroundWindow()
@@ -101,7 +112,7 @@ def track_it(cred_file = None, s3_bucket = None, heart_beat_time = 60, send_2_s3
         if prev_pos[0] != curr_pos[0] or prev_pos[1] != curr_pos[1] or curr_window_title != window_title:        
             out = str(pos_str) + '\t' + str(now) + '\t' + str(window_title) + '\n'
             
-            path = "c:/temp/out/"            
+            path = USER_DIR + "/tmp-usage-out/"            
             isExist = os.path.exists(path)
             if not isExist:
                 os.makedirs(path)
@@ -136,5 +147,8 @@ def track_it(cred_file = None, s3_bucket = None, heart_beat_time = 60, send_2_s3
     
     
 if __name__ == '__main__':
-    track_it(cred_file = '\\authentication\\test_creds.yml', 
-             s3_bucket = 'home-usage-logger', heart_beat_time = 2, send_2_s3_minute_interval = 1)
+    cred_file_name = USER_DIR + '/Documents/authentication/test_creds.yml'
+    
+    track_it(cred_file = cred_file_name, 
+             s3_bucket = 'home-usage-logger', heart_beat_time = 2, 
+             send_2_s3_minute_interval = 1)
